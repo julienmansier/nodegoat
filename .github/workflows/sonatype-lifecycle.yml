@@ -1,4 +1,4 @@
-name: Sonatype Lifecycle
+name: Sonatype Lifecycle 
 on: [push, pull_request]
 
 jobs:

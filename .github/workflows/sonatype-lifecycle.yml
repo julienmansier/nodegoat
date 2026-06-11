@@ -30,7 +30,6 @@ jobs:
           cat > .npmrc <<EOF
           registry=https://repo.hiring.eu1.sonatype-se.com/repository/jmansier_npm_proxy/
           //repo.hiring.eu1.sonatype-se.com/repository/jmansier_npm_proxy/:_auth=${NEXUS_NPM_AUTH}
-          always-auth=true
           EOF
 
       # Resolve the full dependency tree through the proxy so the IQ scan

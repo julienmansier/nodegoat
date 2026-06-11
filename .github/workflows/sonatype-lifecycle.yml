@@ -1,0 +1,63 @@
+name: Sonatype Lifecycle
+on: [push, pull_request]
+
+jobs:
+  policy-evaluation:
+    name: Nexus IQ Policy Evaluation
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ["14.x"]
+
+    steps:
+      - name: Checkout https://github.com/${{ github.repository }}@${{ github.ref }}
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # Point npm at the Nexus proxy. Written at runtime so the auth token
+      # stays in a secret and never lands in the repo or local checkouts.
+      - name: Configure npm to use the Nexus proxy
+        env:
+          NEXUS_NPM_AUTH: ${{ secrets.NEXUS_NPM_AUTH }}
+        run: |
+          cat > .npmrc <<EOF
+          registry=https://repo.hiring.eu1.sonatype-se.com/repository/jmansier_npm_proxy/
+          //repo.hiring.eu1.sonatype-se.com/repository/jmansier_npm_proxy/:_auth=${NEXUS_NPM_AUTH}
+          always-auth=true
+          EOF
+
+      # Resolve the full dependency tree through the proxy so the IQ scan
+      # evaluates exactly what a build would produce.
+      - name: Install dependencies via Nexus proxy
+        run: npm ci
+
+      - name: Sonatype Lifecycle policy evaluation
+        env:
+          IQ_AUTH: ${{ secrets.IQ_AUTH }}
+        run: |
+          mkdir -p iq-reports
+          docker run --rm \
+            -v "${{ github.workspace }}:/target" \
+            -v "${{ github.workspace }}/iq-reports:/sonatype/reports" \
+            sonatype/nexus-iq-cli /sonatype/evaluate \
+            -s https://iq-hiring.eu1.sonatype-se.com \
+            -a "$IQ_AUTH" \
+            -i OBI_WAN_KENOBI \
+            -t build \
+            /target
+
+      # Publish the report even when the policy gate fails the job, so the
+      # findings are always reviewable from the run summary.
+      - name: Upload Sonatype IQ report
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: sonatype-iq-report
+          path: iq-reports

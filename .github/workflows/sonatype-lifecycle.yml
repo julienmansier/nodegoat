@@ -53,6 +53,16 @@ jobs:
             -r /sonatype/reports/policy-eval.json \
             /target
 
+      # The demo IQ Server has no enforcing policy action, so gate the build
+      # ourselves on violation counts from the result file. Tune the limits
+      # here (negative = no limit).
+      - name: Enforce policy thresholds
+        env:
+          MAX_CRITICAL: "0"
+          MAX_SEVERE: "-1"
+          MAX_MODERATE: "-1"
+        run: node .github/scripts/iq-gate.js
+
       # Publish the report even when the policy gate fails the job, so the
       # findings are always reviewable from the run summary.
       - name: Upload Sonatype IQ report

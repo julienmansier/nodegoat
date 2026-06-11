@@ -29,3 +29,6 @@ test/e2e/videos/
 
 # ignore Snyk Code scanner files
 .dccache
+
+# Sonatype IQ local report output
+iq-reports/

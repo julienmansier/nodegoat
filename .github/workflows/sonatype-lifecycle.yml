@@ -50,6 +50,7 @@ jobs:
             -a "$IQ_AUTH" \
             -i OBI_WAN_KENOBI \
             -t build \
+            -r /sonatype/reports/policy-eval.json \
             /target
 
       # Publish the report even when the policy gate fails the job, so the
